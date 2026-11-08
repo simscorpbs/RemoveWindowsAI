@@ -1,3 +1,20 @@
+function Write-Status {
+    param(
+        [string]$msg,
+        [switch]$warningOutput,
+        [switch]$errorOutput
+    )
+    if ($errorOutput) {
+        Write-Host "[ ! ERROR ] $msg" -ForegroundColor Red
+    }
+    elseif ($warningOutput) {
+        Write-Host "[ * WARNING ] $msg" -ForegroundColor Yellow
+    }
+    else {
+        Write-Host "[ + ] $msg" -ForegroundColor Cyan
+    }
+}
+
 function Run-Trusted([String]$command, $psversion) {
 
     #modified from https://github.com/agadiffe/WindowsMize/blob/e64923ac8055f652c701e99da89a9b680070178e/src/modules/helper_functions/general/public/Invoke-CommandAsSystem.ps1
@@ -139,8 +156,6 @@ catch {
 $regValName = 'CachedBuild'
 if ($CurrentCachedBuild -ne $OSBuild) {
     #update has occured because current cached build is not equal to current reported build
-    #updated cached build
-    Reg.exe add 'HKLM\SOFTWARE\RemoveWindowsAI' /v $regValName /d "$OSBuild" /t REG_SZ /f >$null
 
     #run through checks for reinstalled ai
     #===================================================================================================
@@ -198,8 +213,11 @@ foreach ($choice in $aipackagesarray) {
 
     Set-Content -Path $packageRemovalPath -Value $code -Force 
     #allow removal script to run
+    $originalLocalMachineExecutionPolicy = Get-ExecutionPolicy -Scope LocalMachine
+    $localMachineExecutionPolicyChanged = $false
     try {
-        Set-ExecutionPolicy Unrestricted -Force -ErrorAction Stop
+        Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy Unrestricted -Force -ErrorAction Stop
+        $localMachineExecutionPolicyChanged = $true
     }
     catch {
         #user has set powershell execution policy via group policy or via settings, to change it we need to update the registry 
@@ -302,6 +320,10 @@ foreach ($choice in $aipackagesarray) {
     Set-FeatureID -disable -FeatureId 63366798
     Set-FeatureID -disable -FeatureId 58375066
 
+    $packages = get-appxpackage -AllUsers | Where-Object { $packageName = $_.Name; $aipackages | Where-Object { $packageName -like $_ } }
+    if (!$packages) {
+        Reg.exe add 'HKLM\SOFTWARE\RemoveWindowsAI' /v $regValName /d "$OSBuild" /t REG_SZ /f >$null
+    }
 
     #add registry keys even tho im pretty sure they dont get changed 
     #add maybe some file cleanup
@@ -310,5 +332,8 @@ foreach ($choice in $aipackagesarray) {
     #set executionpolicy back to what it was
     if ($Global:ogExecutionPolicy) {
         Reg.exe add $($Global:ogExecutionPolicyPath -replace ':', '') /v 'ExecutionPolicy' /t REG_SZ /d $ogExecutionPolicy /f >$null
+    }
+    if ($localMachineExecutionPolicyChanged) {
+        Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy $originalLocalMachineExecutionPolicy -Force
     }
 }
