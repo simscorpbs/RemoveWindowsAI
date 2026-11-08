@@ -84,7 +84,13 @@ if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
         
     }
 
-    $arglist = "-NoProfile -ExecutionPolicy Bypass -C `"& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/zoicware/RemoveWindowsAI/main/RemoveWindowsAi.ps1'))) $($paramStr -join ' ')`""
+    if ($PSCommandPath) {
+        #run from a local file: relaunch that same file elevated instead of downloading it again
+        $arglist = "-NoProfile -ExecutionPolicy Bypass -C `"& '$PSCommandPath' $($paramStr -join ' ')`""
+    }
+    else {
+        $arglist = "-NoProfile -ExecutionPolicy Bypass -C `"& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/simscorpbs/RemoveWindowsAI/main/RemoveWindowsAi.ps1'))) $($paramStr -join ' ')`""
+    }
     Start-Process PowerShell.exe -ArgumentList $arglist -Verb RunAs
     exit	
 }
@@ -2069,10 +2075,10 @@ function Install-NOAIPackage {
                 Write-Status -msg 'Downloading RemoveWindowsAI Package From Github...'
                 $ProgressPreference = 'SilentlyContinue'
                 try {
-                    Invoke-WebRequest -Uri "https://github.com/zoicware/RemoveWindowsAI/raw/refs/heads/main/RemoveWindowsAIPackage/$arch/ZoicwareRemoveWindowsAI-$($arch)1.0.0.1.cab" -OutFile "$($tempDir)ZoicwareRemoveWindowsAI-$($arch)1.0.0.1.cab" -UseBasicParsing -ErrorAction Stop
+                    Invoke-WebRequest -Uri "https://github.com/simscorpbs/RemoveWindowsAI/raw/refs/heads/main/RemoveWindowsAIPackage/$arch/ZoicwareRemoveWindowsAI-$($arch)1.0.0.1.cab" -OutFile "$($tempDir)ZoicwareRemoveWindowsAI-$($arch)1.0.0.1.cab" -UseBasicParsing -ErrorAction Stop
                 }
                 catch {
-                    Write-Status -msg "Unable to Download Package at: https://github.com/zoicware/RemoveWindowsAI/raw/refs/heads/main/RemoveWindowsAIPackage/$arch/ZoicwareRemoveWindowsAI-$($arch)1.0.0.1.cab" -errorOutput
+                    Write-Status -msg "Unable to Download Package at: https://github.com/simscorpbs/RemoveWindowsAI/raw/refs/heads/main/RemoveWindowsAIPackage/$arch/ZoicwareRemoveWindowsAI-$($arch)1.0.0.1.cab" -errorOutput
                     return
                 }
 
@@ -3420,7 +3426,7 @@ function Update-Cleanup-Check {
         #grab update cleanup script from github instead of embedding it in here
         try {
             Write-Status -msg 'Attempting to get Update Cleanup script from Github...'
-            $scriptContent = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/zoicware/RemoveWindowsAI/refs/heads/main/RemoveAI-UpdateCleanup.ps1' -UseBasicParsing -ErrorAction Stop | Select-Object Content
+            $scriptContent = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/simscorpbs/RemoveWindowsAI/refs/heads/main/RemoveAI-UpdateCleanup.ps1' -UseBasicParsing -ErrorAction Stop | Select-Object Content
         }
         catch {
             Write-Status -msg 'Unable to get Update Cleanup script from Github!' -errorOutput
@@ -3476,7 +3482,7 @@ function Create-ScriptShortcut {
         $WshShell = New-Object -comObject WScript.Shell
         $Shortcut = $WshShell.CreateShortcut("$desktopPath\RemoveWindowsAI.lnk")
         $Shortcut.TargetPath = $psPath
-        $Shortcut.Arguments = "-ep bypass -c `"& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/zoicware/RemoveWindowsAI/main/RemoveWindowsAi.ps1')))`""
+        $Shortcut.Arguments = "-ep bypass -c `"& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/simscorpbs/RemoveWindowsAI/main/RemoveWindowsAi.ps1')))`""
         $Shortcut.IconLocation = $icoPath
         $Shortcut.Save()
         #runasadmin
@@ -3491,7 +3497,7 @@ function Create-ScriptShortcut {
         $WshShell = New-Object -comObject WScript.Shell
         $Shortcut = $WshShell.CreateShortcut("$startPath\RemoveWindowsAI.lnk")
         $Shortcut.TargetPath = $psPath
-        $Shortcut.Arguments = "-ep bypass -c `"& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/zoicware/RemoveWindowsAI/main/RemoveWindowsAi.ps1')))`""
+        $Shortcut.Arguments = "-ep bypass -c `"& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/simscorpbs/RemoveWindowsAI/main/RemoveWindowsAi.ps1')))`""
         $Shortcut.IconLocation = $icoPath
         $Shortcut.Save()
         #runasadmin
@@ -3916,7 +3922,7 @@ function install-classicapps {
         if (!(Test-Path "$($tempDir)ClassicApps")) {
             $ProgressPreference = 'SilentlyContinue'
             Write-Status -msg 'Downloading Classic Apps Files from Github...'
-            $url = 'https://github.com/zoicware/RemoveWindowsAI/archive/refs/heads/main.zip'
+            $url = 'https://github.com/simscorpbs/RemoveWindowsAI/archive/refs/heads/main.zip'
             try {
                 Invoke-WebRequest -Uri $url -OutFile "$($tempDir)main.zip" -ErrorAction Stop
             }
@@ -4992,7 +4998,7 @@ else {
 '@
     $githubButton.Template = [System.Windows.Markup.XamlReader]::Parse($githubTemplate)
     $githubButton.Add_Click({
-            Start-Process 'https://github.com/zoicware/RemoveWindowsAI'
+            Start-Process 'https://github.com/simscorpbs/RemoveWindowsAI'
         })
 
     $socialPanel.Children.Add($discordButton) | Out-Null
